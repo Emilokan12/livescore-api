@@ -1,0 +1,4 @@
+__pycache__/
+games.db
+.venv/
+.pytest_cache/
