@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-from models import Game
 from routes import games
 from contextlib import asynccontextmanager
 from jobs import scheduler

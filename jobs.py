@@ -1,7 +1,5 @@
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI
-from tomlkit import datetime
 from scraper import LiveScoreScraper
 from repository import GameRepository
 from routes import games
