@@ -89,6 +89,8 @@ Note: one test calls the real livescore API, so it needs an internet connection.
 ```
 ## Live Link
 https://livescore-api-kpad.onrender.com/docs
+https://livescore-api-kpad.onrender.com
+
 ## Tech
 
 Python, FastAPI, SQLAlchemy, SQLite, APScheduler, Pydantic, requests, pytest
