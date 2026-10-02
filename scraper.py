@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime
+from datetime import datetime, date
 
 class LiveScoreScraper:
     def __init__(self):     
@@ -9,23 +9,24 @@ class LiveScoreScraper:
         }
         self.cache = {}
 
-    def build_url(self, sport):
-        today = datetime.now().strftime("%Y%m%d")
-        url = f"https://prod-cdn-mev-api.livescore.com/api/v2/date/{sport}/{today}/1?CountryCode=NG&paging=false&locale=en"
+    def build_url(self, sport, day):
+        url = f"https://prod-cdn-mev-api.livescore.com/api/v2/date/{sport}/{day.strftime('%Y%m%d')}/1?CountryCode=NG&paging=false&locale=en"
         return url
 
-    def cache_results(self, sport):
+    def cache_results(self, sport, day=None):
+        day = day or date.today()
+        key = (sport, day)
         current_time = datetime.now().timestamp()
-        if sport in self.cache and (current_time - self.cache[sport]["time"]) < 30:
-            return self.cache[sport]["games"]
-        else:
-            games = self.fetch_games(sport)
-            self.cache[sport] = {"games": games, "time": current_time}
-            return games
+        if key in self.cache and (current_time - self.cache[key]["time"]) < 30:
+            return self.cache[key]["games"]
+        games = self.fetch_games(sport, day)
+        self.cache[key] = {"games": games, "time": current_time}
+        return games
 
     
-    def fetch_games(self, sport):
-        url = self.build_url(sport)
+    def fetch_games(self, sport, day=None):
+        day = day or date.today()
+        url = self.build_url(sport, day)
         response = requests.get(url, headers=self.headers, timeout=10)
         response.raise_for_status()
         data = response.json()
@@ -33,6 +34,17 @@ class LiveScoreScraper:
         games_list = []
         for league in data["Sctns"]:
             for game in league["Ts"]["Evs"]:
-                games_list.append({"event_id": game["Eid"],"home": game["T1"][0]["Nm"], "home_score": game.get("Tr1"), "away": game["T2"][0]["Nm"], "away_score": game.get("Tr2"), "status": game.get("Eps", "unknown")})
+                games_list.append({
+                    "event_id": game["Eid"],
+                    "home": game["T1"][0]["Nm"], 
+                    "home_score": game.get("Tr1"), 
+                    "away": game["T2"][0]["Nm"], 
+                    "away_score": game.get("Tr2"), 
+                    "status": game.get("Eps", "unknown"), 
+                    "game_date": day.isoformat()
+                })
         return games_list
 
+from datetime import date, timedelta
+scraper = LiveScoreScraper()
+print(scraper.fetch_games("soccer", date.today() + timedelta(days=1))[:3])

@@ -10,9 +10,9 @@ scraper = LiveScoreScraper()
 repository = GameRepository()
 
 @router.get("/games/{sport}", response_model=list[Game])
-def get_games(sport: str, status: str | None = None):
+def get_games(sport: str, status: str | None = None, day: str | None = None):
     try:
-        games = scraper.cache_results(sport)
+        games = scraper.cache_results(sport, day)
         repository.save_games(sport, games)
         if status:
             games = [game for game in games if game["status"] == status]
@@ -25,4 +25,9 @@ def get_by_team(sport: str, team: str):
     games = repository.get_by_team(sport, team)
     if not games:
         raise fastapi.HTTPException(status_code=404, detail="No games found for the specified team")
-    return [Game(event_id=game.event_id, home=game.home, away=game.away, home_score=game.home_score, away_score=game.away_score, status=game.status) for game in games]
+    return [Game(event_id=game.event_id, 
+        home=game.home, away=game.away, 
+        home_score=game.home_score, 
+        away_score=game.away_score, 
+        status=game.status, 
+        game_date=game.game_date) for game in games]

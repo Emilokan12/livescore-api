@@ -12,6 +12,7 @@ class GameRepository:
                 existing.home_score = game["home_score"]
                 existing.away_score = game["away_score"]
                 existing.status = game["status"]
+                existing.game_date = game["game_date"]
             else:
                 new_game = GameRow(
                     event_id=game["event_id"],
@@ -20,7 +21,8 @@ class GameRepository:
                     away=game["away"],
                     home_score=game["home_score"],
                     away_score=game["away_score"],
-                    status=game["status"]
+                    status=game["status"],
+                    game_date=game["game_date"]
                 )
                 session.add(new_game)
         session.commit()
@@ -29,6 +31,6 @@ class GameRepository:
     def get_by_team(self, sport, team):   
         session = SessionLocal()
         games = session.query(GameRow).filter(GameRow.sport == sport,
-                    (GameRow.home.like(f"%{team}%")) | (GameRow.away.like(f"%{team}%"))).all()
+                    (GameRow.home.like(f"%{team}%")) | (GameRow.away.like(f"%{team}%"))).order_by(GameRow.game_date).all()
         session.close()
         return games
