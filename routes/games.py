@@ -4,13 +4,15 @@ import requests
 from models import Game
 import fastapi
 from repository import GameRepository
+from datetime import date
 
 router = APIRouter()
 scraper = LiveScoreScraper()
 repository = GameRepository()
 
+
 @router.get("/games/{sport}", response_model=list[Game])
-def get_games(sport: str, status: str | None = None, day: str | None = None):
+def get_games(sport: str, status: str | None = None, day: date | None = None):
     try:
         games = scraper.cache_results(sport, day)
         repository.save_games(sport, games)

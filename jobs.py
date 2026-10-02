@@ -28,4 +28,4 @@ def update_games(days_ahead=0):
 
 scheduler = BackgroundScheduler()
 scheduler.add_job(update_games, "interval", seconds=60, args=[0])
-scheduler.add_job(update_games, "interval", hours=3, args=[7])
+scheduler.add_job(update_games, "interval", hours=3, args=[14], next_run_time=datetime.now())
