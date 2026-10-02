@@ -18,7 +18,7 @@ st.title("Live Scores")
 
 sport = st.selectbox("Sport", ["basketball", "soccer"])
 team = st.text_input("Search a team (optional, ignores the date)")
-day = st.date_input("Date", value=date.today())
+day = st.date_input("Date", value=None, format="YYYY-MM-DD")
 
 if st.button("Search"):
     if team:
@@ -28,7 +28,7 @@ if st.button("Search"):
     else:
         # No team typed: show every game on the chosen date
         url = f"{API_URL}/games/{sport}"
-        params = {"day": day.isoformat()}
+        params = {"day": day.isoformat() if day else {}}
 
     try:
         with st.spinner("Loading..."):
