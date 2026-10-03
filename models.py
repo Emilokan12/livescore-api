@@ -12,10 +12,13 @@ class Game(BaseModel):
     away_score: int | None = None
     status: str | None = None
     game_date: str | None = None
+    league: str | None = None
+    country: str | None = None
+    start_time: str | None = None
 
 
 class GameRow(Base):
-    __tablename__ = "games_v2"
+    __tablename__ = "games_v3"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     event_id: Mapped[str] = mapped_column(String(50), unique=True)
@@ -26,5 +29,8 @@ class GameRow(Base):
     away_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(50))
     game_date: Mapped[str] = mapped_column(String(10)) 
+    league: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    start_time: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 Base.metadata.create_all(engine)

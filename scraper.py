@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 class LiveScoreScraper:
     def __init__(self):     
@@ -41,7 +41,10 @@ class LiveScoreScraper:
                     "away": game["T2"][0]["Nm"], 
                     "away_score": game.get("Tr2"), 
                     "status": game.get("Eps", "unknown"), 
-                    "game_date": day.isoformat()
+                    "game_date": day.isoformat(),
+                    "league": league["Ts"]["Snm"],
+                    "country": league["Ts"].get("Cnm"),
+                    "start_time": datetime.fromtimestamp(game["Est"], tz=timezone.utc).isoformat() if game.get("Est") else None
                 })
         return games_list
 
