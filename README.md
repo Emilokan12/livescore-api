@@ -87,9 +87,12 @@ Note: one test calls the real livescore API, so it needs an internet connection.
 │   └── test_api.py
 └── requirements.txt
 ```
-## Live Link
+## Api and doc links
 https://livescore-api-kpad.onrender.com/docs
 https://livescore-api-kpad.onrender.com
+
+## App link
+https://livescore-api-4lfa5wqqpfzttrmv8bo5ru.streamlit.app/
 
 ## Tech
 
