@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import games
+from routes import games, analysis
 from contextlib import asynccontextmanager
 from jobs import scheduler
 
@@ -12,3 +12,4 @@ async def lifespan(app):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(games.router)
+app.include_router(analysis.router)
