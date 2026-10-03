@@ -27,9 +27,4 @@ def get_by_team(sport: str, team: str):
     games = repository.get_by_team(sport, team)
     if not games:
         raise fastapi.HTTPException(status_code=404, detail="No games found for the specified team")
-    return [Game(event_id=game.event_id, 
-        home=game.home, away=game.away, 
-        home_score=game.home_score, 
-        away_score=game.away_score, 
-        status=game.status, 
-        game_date=game.game_date) for game in games]
+    return games
