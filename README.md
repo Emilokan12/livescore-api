@@ -60,7 +60,6 @@ cd livescore-api
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
-
 Then open http://127.0.0.1:8000/docs.
 
 The SQLite database file (`games.db`) is created automatically on first run. Run the commands from the project folder, because the database path is relative.
@@ -88,6 +87,9 @@ Note: one test calls the real livescore API, so it needs an internet connection.
 │   └── test_api.py
 └── requirements.txt
 ```
+## Live Link
+https://livescore-api-kpad.onrender.com/docs
+https://livescore-api-kpad.onrender.com
 
 ## Tech
 
