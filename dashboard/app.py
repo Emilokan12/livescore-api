@@ -6,8 +6,6 @@ from zoneinfo import ZoneInfo
 import requests
 import streamlit as st
 
-from routes import games
-
 # Your Render address (no slash at the end)
 API_URL = "https://livescore-api-kpad.onrender.com"
 LOCAL_TZ = ZoneInfo("Africa/Lagos")
