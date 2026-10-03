@@ -161,4 +161,10 @@ def analysis_section(sport, team, day_text):
         else:
             st.error("Analysis is unavailable right now.")
 
-analysis_section(sport, team, day_text)
+tab_scores, tab_analysis = st.tabs(["Scores", "Analysis"])
+
+with tab_scores:
+    show_games(sport, team, day_text)
+
+with tab_analysis:
+   analysis_section(sport, team, day_text)
