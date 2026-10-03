@@ -181,7 +181,7 @@ def analysis_page():
 
         if response.ok:
             st.write(response.json()["analysis"])
-            st.caption("AI-generated from saved results only. Not betting advice.")
+            st.caption("AI-generated. It can make mistakes and may be out of date. Not betting advice.")
         elif response.status_code == 429:
             st.warning("The daily analysis limit has been reached. Try again tomorrow.")
         else:
