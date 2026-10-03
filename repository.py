@@ -37,3 +37,27 @@ class GameRepository:
                     (GameRow.home.like(f"%{team}%")) | (GameRow.away.like(f"%{team}%"))).order_by(GameRow.game_date,GameRow.start_time).all()
         session.close()
         return games
+
+    def get_game(self, event_id):
+        session = SessionLocal()
+        game = session.query(GameRow).filter(GameRow.event_id == event_id).first()
+        session.close()
+        return game
+ 
+    def get_recent_results(self, team, sport, before_date, limit=5):
+        session = SessionLocal()
+        rows = (
+            session.query(GameRow)
+            .filter(
+                GameRow.sport == sport,
+                GameRow.status.in_(["FT", "AET", "AP"]),
+                GameRow.game_date < before_date,
+                (GameRow.home == team) | (GameRow.away == team),
+            )
+            .order_by(GameRow.game_date.desc())
+            .limit(limit)
+            .all()
+        )
+        session.close()
+        return rows
+ 
