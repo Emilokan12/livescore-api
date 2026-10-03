@@ -134,6 +134,7 @@ show_games(sport, team, day_text)
 
 
 def analysis_section(sport, team, day_text):
+    st.subheader("Match analysis")
     try:
         games = load_games(sport, team, day_text)
     except requests.RequestException:
@@ -141,7 +142,6 @@ def analysis_section(sport, team, day_text):
     if not games:
         return
 
-    st.subheader("Match analysis")
     options = {f"{g['home']} vs {g['away']}": g["event_id"] for g in games}
     choice = st.selectbox("Pick a game", list(options.keys()))
 
