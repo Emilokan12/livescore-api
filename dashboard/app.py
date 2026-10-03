@@ -99,22 +99,10 @@ def render(games, show_date):
 
 st.title("Live Scores")
 
-sport = st.selectbox("Sport", ["soccer", "basketball"])
-col1, col2 = st.columns(2)
-team = col1.text_input("Search a team", help="Shows all saved games for that team")
-day = col2.date_input(
-    "Date",
-    value=None,
-    format="YYYY-MM-DD",
-    help="Leave empty for today. Ignored when a team is typed.",
-)
+if "page" not in st.session_state:
+    st.session_state.page = "scores"
 
-if st.button("Refresh"):
-    st.cache_data.clear()
-    st.rerun()
 
-team = team.strip()
-day_text = day.isoformat() if day else ""
 @st.fragment(run_every=30)
 def show_games(sport, team, day_text):
     try:
@@ -129,20 +117,58 @@ def show_games(sport, team, day_text):
         st.caption(f"{len(games)} games")
         render(games, show_date=bool(team))
 
-show_games(sport, team, day_text)
+
+def scores_page():
+    sport = st.selectbox("Sport", ["soccer", "basketball"], key="scores_sport")
+    col1, col2 = st.columns(2)
+    team = col1.text_input(
+        "Search a team", help="Shows all saved games for that team", key="scores_team"
+    )
+    day = col2.date_input(
+        "Date",
+        value=None,
+        format="YYYY-MM-DD",
+        help="Leave empty for today. Ignored when a team is typed.",
+        key="scores_day",
+    )
+
+    btn1, btn2 = st.columns(2)
+    if btn1.button("Refresh", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+    if btn2.button("Analysis", use_container_width=True):
+        st.session_state.page = "analysis"
+        st.rerun()
+
+    show_games(sport, team.strip(), day.isoformat() if day else "")
 
 
+def analysis_page():
+    if st.button("← Back to scores"):
+        st.session_state.page = "scores"
+        st.rerun()
 
-def analysis_section(sport, team, day_text):
     st.subheader("Match analysis")
+    sport = st.selectbox("Sport", ["soccer", "basketball"], key="analysis_sport")
+    team = st.text_input("Search a team to analyse", key="analysis_team").strip()
+
+    if not team:
+        st.info("Type a team name to find its games.")
+        return
+
     try:
-        games = load_games(sport, team, day_text)
+        games = load_games(sport, team, "")
     except requests.RequestException:
+        st.error("Could not load the games. Try again in a minute.")
         return
     if not games:
+        st.info("No saved games found for that team.")
         return
 
-    options = {f"{g['home']} vs {g['away']}": g["event_id"] for g in games}
+    options = {
+        f"{g.get('game_date', '')} · {g['home']} vs {g['away']}": g["event_id"]
+        for g in games
+    }
     choice = st.selectbox("Pick a game", list(options.keys()))
 
     if st.button("Analyse"):
@@ -161,10 +187,8 @@ def analysis_section(sport, team, day_text):
         else:
             st.error("Analysis is unavailable right now.")
 
-tab_scores, tab_analysis = st.tabs(["Scores", "Analysis"])
 
-with tab_scores:
-    show_games(sport, team, day_text)
-
-with tab_analysis:
-   analysis_section(sport, team, day_text)
+if st.session_state.page == "analysis":
+    analysis_page()
+else:
+    scores_page()
