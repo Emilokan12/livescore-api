@@ -129,6 +129,36 @@ def show_games(sport, team, day_text):
         st.caption(f"{len(games)} games")
         render(games, show_date=bool(team))
 
-
-
 show_games(sport, team, day_text)
+
+
+
+def analysis_section(sport, team, day_text):
+    try:
+        games = load_games(sport, team, day_text)
+    except requests.RequestException:
+        return
+    if not games:
+        return
+
+    st.subheader("Match analysis")
+    options = {f"{g['home']} vs {g['away']}": g["event_id"] for g in games}
+    choice = st.selectbox("Pick a game", list(options.keys()))
+
+    if st.button("Analyse"):
+        with st.spinner("Analysing..."):
+            try:
+                response = requests.get(f"{API_URL}/analysis/{options[choice]}", timeout=60)
+            except requests.RequestException:
+                st.error("Could not reach the API. Try again in a minute.")
+                return
+
+    if response.ok:
+        st.write(response.json()["analysis"])
+        st.caption("AI-generated from saved results only. Not betting advice.")
+    elif response.status_code == 429:
+        st.warning("The daily analysis limit has been reached. Try again tomorrow.")
+    else:
+        st.error("Analysis is unavailable right now.")
+
+analysis_section(sport, team, day_text)
