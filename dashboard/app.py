@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo
 import requests
 import streamlit as st
 
+from routes import games
+
 # Your Render address (no slash at the end)
 API_URL = "https://livescore-api-kpad.onrender.com"
 LOCAL_TZ = ZoneInfo("Africa/Lagos")
@@ -32,7 +34,7 @@ st.markdown(
 )
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=20)
 def load_games(sport, team, day_text):
     if team:
         url = f"{API_URL}/games/{sport}/team/{quote(team)}"
@@ -115,16 +117,20 @@ if st.button("Refresh"):
 
 team = team.strip()
 day_text = day.isoformat() if day else ""
-
-try:
-    with st.spinner("Loading..."):
+@st.fragment(run_every=30)
+def show_games(sport, team, day_text):
+    try:
         games = load_games(sport, team, day_text)
-except requests.RequestException:
-    st.error("Could not reach the API. It may be waking up, so try again in a minute.")
-    st.stop()
+    except requests.RequestException:
+        st.error("Could not reach the API. It may be waking up, so try again in a minute.")
+        return
 
-if not games:
-    st.info("No games found.")
-else:
-    st.caption(f"{len(games)} games")
-    render(games, show_date=bool(team))
+    if not games:
+        st.info("No games found.")
+    else:
+        st.caption(f"{len(games)} games")
+        render(games, show_date=bool(team))
+
+
+
+show_games(sport, team, day_text)
