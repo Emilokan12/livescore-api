@@ -153,12 +153,12 @@ def analysis_section(sport, team, day_text):
                 st.error("Could not reach the API. Try again in a minute.")
                 return
 
-    if response.ok:
-        st.write(response.json()["analysis"])
-        st.caption("AI-generated from saved results only. Not betting advice.")
-    elif response.status_code == 429:
-        st.warning("The daily analysis limit has been reached. Try again tomorrow.")
-    else:
-        st.error("Analysis is unavailable right now.")
+        if response.ok:
+            st.write(response.json()["analysis"])
+            st.caption("AI-generated from saved results only. Not betting advice.")
+        elif response.status_code == 429:
+            st.warning("The daily analysis limit has been reached. Try again tomorrow.")
+        else:
+            st.error("Analysis is unavailable right now.")
 
 analysis_section(sport, team, day_text)
