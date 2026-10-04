@@ -1,5 +1,5 @@
 import html
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
@@ -9,7 +9,8 @@ import streamlit as st
 # Your Render address (no slash at the end)
 API_URL = "https://livescore-api-kpad.onrender.com"
 LOCAL_TZ = ZoneInfo("Africa/Lagos")
-FINISHED = {"FT", "AET", "AP"}
+FINISHED = {"FT", "AET", "AP", "AOT"}
+NOT_PLAYED = {"Postp.", "Canc.", "Abn.", "Susp.", "Int."}
 
 st.set_page_config(page_title="Live Scores", page_icon="🏀")
 
@@ -17,15 +18,38 @@ st.markdown(
     """
 <style>
 .league {font-weight:700; font-size:0.9rem; padding:8px 12px; margin-top:16px;
-         background:rgba(128,128,128,0.15); border-radius:8px 8px 0 0;}
+         border-left:4px solid currentColor;}
+.league.c0 {background:rgba(30,136,229,0.14); color:#1e88e5;}
+.league.c1 {background:rgba(67,160,71,0.14); color:#43a047;}
+.league.c2 {background:rgba(245,124,0,0.14); color:#f57c00;}
+.league.c3 {background:rgba(171,71,188,0.14); color:#ab47bc;}
 .row {display:grid; grid-template-columns:78px 1fr 60px 1fr; align-items:center;
       gap:6px; padding:10px 12px; border-bottom:1px solid rgba(128,128,128,0.2);}
 .status {font-size:0.8rem; opacity:0.7;}
+.status.up {color:#1e88e5; font-weight:600; opacity:1;}
+.status.fin {color:#43a047; font-weight:600; opacity:1;}
 .status.live {color:#e53935; font-weight:700; opacity:1;}
+.status.live::before {content:""; display:inline-block; width:7px; height:7px;
+        border-radius:50%; background:#e53935; margin-right:5px; animation:pulse 1.4s infinite;}
+.eta {display:block; font-size:0.7rem; font-weight:400; opacity:0.8;}
+@keyframes pulse {0% {opacity:1;} 50% {opacity:0.25;} 100% {opacity:1;}}
 .team {font-size:0.95rem;}
 .team.home {text-align:right;}
+.team.w {font-weight:700;}
+.team.l {opacity:0.6;}
 .score {text-align:center; font-weight:700; border-radius:6px; padding:2px 0;
         background:rgba(128,128,128,0.15);}
+.score.live {background:rgba(229,57,53,0.15); color:#e53935;}
+.score.up {opacity:0.5;}
+.stats {display:flex; gap:8px; margin:6px 0 10px;}
+.stat {flex:1; text-align:center; padding:8px 4px; border-radius:10px; font-size:0.8rem;}
+.stat b {display:block; font-size:1.3rem;}
+.stat.live {background:rgba(229,57,53,0.14);}
+.stat.live b {color:#e53935;}
+.stat.up {background:rgba(30,136,229,0.14);}
+.stat.up b {color:#1e88e5;}
+.stat.fin {background:rgba(67,160,71,0.14);}
+.stat.fin b {color:#43a047;}
 </style>
 """,
     unsafe_allow_html=True,
@@ -54,17 +78,87 @@ def to_local(iso_text):
     return datetime.fromisoformat(iso_text).astimezone(LOCAL_TZ)
 
 
-def status_label(game, show_date):
-    status = game.get("status") or ""
+def game_kind(game):
+    status = (game.get("status") or "").strip()
     if status == "NS":
+        return "upcoming"
+    if status in FINISHED:
+        return "finished"
+    if status in NOT_PLAYED:
+        return "off"
+    return "live"  # HT, 45', Q2, and so on
+
+
+def eta_text(game):
+    local = to_local(game.get("start_time"))
+    if local is None:
+        return ""
+    minutes = int((local - datetime.now(LOCAL_TZ)).total_seconds() // 60)
+    if minutes < 0:
+        return "due"
+    if minutes >= 360:
+        return ""
+    hours, mins = divmod(minutes, 60)
+    return f"in {hours}h {mins:02d}m" if hours else f"in {mins}m"
+
+
+def status_label(game, show_date):
+    kind = game_kind(game)
+    status = game.get("status") or ""
+    if kind == "upcoming":
         local = to_local(game.get("start_time"))
         if local is None:
-            return "NS", ""
+            return "NS", "up", ""
         fmt = "%d %b %H:%M" if show_date else "%H:%M"
-        return local.strftime(fmt), ""
-    if status in FINISHED:
-        return status, ""
-    return status, "live"  # HT, 45', and so on
+        return local.strftime(fmt), "up", ("" if show_date else eta_text(game))
+    if kind == "finished":
+        return status, "fin", ""
+    if kind == "live":
+        return status, "live", ""
+    return status, "", ""
+
+
+def summary(games):
+    counts = {"live": 0, "upcoming": 0, "finished": 0}
+    for game in games:
+        kind = game_kind(game)
+        if kind in counts:
+            counts[kind] += 1
+
+    st.markdown(
+        '<div class="stats">'
+        f'<div class="stat live"><b>{counts["live"]}</b>Live now</div>'
+        f'<div class="stat up"><b>{counts["upcoming"]}</b>Upcoming</div>'
+        f'<div class="stat fin"><b>{counts["finished"]}</b>Finished</div>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def league_color(title):
+    return sum(ord(ch) for ch in title) % 4
+
+
+def arrange(items):
+    """Live first, then upcoming by kickoff time, then finished (latest first)."""
+    items = sorted(items, key=lambda g: g.get("start_time") or "")
+    live = [g for g in items if game_kind(g) == "live"]
+    upcoming = [g for g in items if game_kind(g) == "upcoming"]
+    finished = [g for g in items if game_kind(g) == "finished"][::-1]
+    other = [g for g in items if game_kind(g) == "off"]
+    return live + upcoming + finished + other
+
+
+def league_order(items):
+    kinds = [game_kind(g) for g in items]
+    if "live" in kinds:
+        return (0, "")
+    kickoffs = [
+        g.get("start_time") or "~" for g in items if game_kind(g) == "upcoming"
+    ]
+    if kickoffs:
+        return (1, min(kickoffs))
+    return (2, "")
 
 
 def render(games, show_date):
@@ -73,24 +167,40 @@ def render(games, show_date):
         key = (game.get("country") or "", game.get("league") or "Other")
         leagues.setdefault(key, []).append(game)
 
-    parts = []
-    for (country, league), items in leagues.items():
-        title = f"{country} · {league}" if country else league
-        parts.append(f'<div class="league">{html.escape(title)}</div>')
+    ordered = sorted(leagues.items(), key=lambda item: league_order(item[1]))
 
-        for game in sorted(items, key=lambda g: g.get("start_time") or ""):
-            label, css = status_label(game, show_date)
-            if game["home_score"] is None or game["away_score"] is None:
+    parts = []
+    for (country, league), items in ordered:
+        title = f"{country} · {league}" if country else league
+        parts.append(
+            f'<div class="league c{league_color(title)}">{html.escape(title)}</div>'
+        )
+
+        for game in arrange(items):
+            label, css, eta = status_label(game, show_date)
+            home_score, away_score = game["home_score"], game["away_score"]
+            if home_score is None or away_score is None:
                 score = "-"
             else:
-                score = f"{game['home_score']} - {game['away_score']}"
+                score = f"{home_score} - {away_score}"
 
+            home_cls, away_cls = "", ""
+            if (
+                css == "fin"
+                and home_score is not None
+                and away_score is not None
+                and home_score != away_score
+            ):
+                home_cls = " w" if home_score > away_score else " l"
+                away_cls = " w" if away_score > home_score else " l"
+
+            eta_html = f'<span class="eta">{html.escape(eta)}</span>' if eta else ""
             parts.append(
                 f'<div class="row">'
-                f'<div class="status {css}">{html.escape(label)}</div>'
-                f'<div class="team home">{html.escape(game["home"])}</div>'
-                f'<div class="score">{score}</div>'
-                f'<div class="team away">{html.escape(game["away"])}</div>'
+                f'<div class="status {css}">{html.escape(label)}{eta_html}</div>'
+                f'<div class="team home{home_cls}">{html.escape(game["home"])}</div>'
+                f'<div class="score {css}">{score}</div>'
+                f'<div class="team away{away_cls}">{html.escape(game["away"])}</div>'
                 f"</div>"
             )
 
@@ -104,7 +214,7 @@ if "page" not in st.session_state:
 
 
 @st.fragment(run_every=30)
-def show_games(sport, team, day_text):
+def show_games(sport, team, day_text, view):
     try:
         games = load_games(sport, team, day_text)
     except requests.RequestException:
@@ -113,23 +223,53 @@ def show_games(sport, team, day_text):
 
     if not games:
         st.info("No games found.")
-    else:
-        st.caption(f"{len(games)} games")
-        render(games, show_date=bool(team))
+        return
+
+    summary(games)
+    st.caption(
+        f"Updated {datetime.now(LOCAL_TZ).strftime('%H:%M:%S')} · refreshes every 30 seconds"
+    )
+
+    if view != "All":
+        games = [g for g in games if game_kind(g) == view.lower()]
+    if not games:
+        st.info(f"No {view.lower()} games.")
+        return
+
+    render(games, show_date=bool(team))
 
 
 def scores_page():
-    sport = st.selectbox("Sport", ["soccer", "basketball"], key="scores_sport")
     col1, col2 = st.columns(2)
-    team = col1.text_input(
+    sport = col1.selectbox("Sport", ["soccer", "basketball"], key="scores_sport")
+    team = col2.text_input(
         "Search a team", help="Shows all saved games for that team", key="scores_team"
     )
-    day = col2.date_input(
-        "Date",
-        value=None,
-        format="YYYY-MM-DD",
-        help="Leave empty for today. Ignored when a team is typed.",
-        key="scores_day",
+
+    when = st.radio(
+        "Day",
+        ["Yesterday", "Today", "Tomorrow", "Pick date"],
+        index=1,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="scores_when",
+    )
+    today = datetime.now(LOCAL_TZ).date()
+    if when == "Yesterday":
+        day = today - timedelta(days=1)
+    elif when == "Tomorrow":
+        day = today + timedelta(days=1)
+    elif when == "Pick date":
+        day = st.date_input("Date", value=today, format="YYYY-MM-DD", key="scores_day")
+    else:
+        day = today
+
+    view = st.radio(
+        "Show",
+        ["All", "Live", "Upcoming", "Finished"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="scores_view",
     )
 
     btn1, btn2 = st.columns(2)
@@ -140,7 +280,7 @@ def scores_page():
         st.session_state.page = "analysis"
         st.rerun()
 
-    show_games(sport, team.strip(), day.isoformat() if day else "")
+    show_games(sport, team.strip(), day.isoformat(), view)
 
 
 def analysis_page():
@@ -181,7 +321,7 @@ def analysis_page():
 
         if response.ok:
             st.write(response.json()["analysis"])
-            st.caption("AI-generated. It can make mistakes and may be out of date. Not betting advice.")
+            st.caption("AI-generated estimate, not a guarantee. It can be wrong or out of date. Betting involves risk, so only bet what you can afford to lose (18+).")
         elif response.status_code == 429:
             st.warning("The daily analysis limit has been reached. Try again tomorrow.")
         else:
