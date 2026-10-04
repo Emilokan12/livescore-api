@@ -30,16 +30,11 @@ def get_analysis(event_id: str):
     if usage["count"] >= DAILY_LIMIT:
         raise HTTPException(status_code=429, detail="Daily analysis limit reached, try again tomorrow")
 
-<<<<<<< HEAD
     home_recent = repository.get_recent_results(game.home, game.sport, game.game_date)
     away_recent = repository.get_recent_results(game.away, game.sport, game.game_date)
     live_data = get_context(game) if game.sport == "soccer" else None
     prompt = build_prompt(game, home_recent, away_recent, live_data)
     
-=======
-    prompt = build_prompt(game)
-
->>>>>>> 14bec520eed91e9810a27f540c064c8c43079d4d
     try:
         text = generate_analysis(prompt)
     except Exception as e:
