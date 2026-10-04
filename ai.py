@@ -20,7 +20,7 @@ def format_results(team, rows):
     return "\n".join(lines)
 
 
-def build_prompt(game, home_recent, away_recent):
+def build_prompt(game, home_recent, away_recent, live_data=None):
     return (
         "You are a sports commentator. Using ONLY the data below, write a short "
         "match preview in at most 120 words. Do not invent statistics, injuries, "

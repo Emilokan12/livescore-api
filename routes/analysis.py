@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import APIRouter, HTTPException
 
 from ai import build_prompt, generate_analysis
+from football import get_context
 from repository import GameRepository
 
 router = APIRouter()
@@ -31,8 +32,9 @@ def get_analysis(event_id: str):
 
     home_recent = repository.get_recent_results(game.home, game.sport, game.game_date)
     away_recent = repository.get_recent_results(game.away, game.sport, game.game_date)
-    prompt = build_prompt(game, home_recent, away_recent)
-
+    live_data = get_context(game) if game.sport == "soccer" else None
+    prompt = build_prompt(game, home_recent, away_recent, live_data)
+    
     try:
         text = generate_analysis(prompt)
     except Exception as e:
