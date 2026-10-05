@@ -108,6 +108,7 @@ def build_prompt(game, home_recent, away_recent, live_data=None):
         "## Form and key factors\n"
         "## Likely outcome\n"
         "## H2H Record\n"
+        f"Give the last five match the teams have played together"
         f"Say who is more likely to win and give rough percentages for: {outcomes}. "
         "State your confidence as low, medium or high.\n"
         "## Betting angles\n"
